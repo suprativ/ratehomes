@@ -1,0 +1,9 @@
+{% extends 'base.html' %}{% block body %}<div class='app'><aside class='sidebar'><div class='brand'><div class='logo'>RATE<br>HOMES</div><div><div class='brand-title'>Rate Homes Agent Dashboard</div><div class='brand-sub'>Powered by Prajna</div></div></div><nav class='nav'>
+<a class='{% if request.endpoint=="index" %}active{% endif %}' href='/'>Overview</a>
+{% if current_role=='screener' %}<a class='{% if request.endpoint=="screening" %}active{% endif %}' href='/screening'>Agent Screening</a>{% endif %}
+{% if current_role=='admin' %}<a class='{% if request.endpoint=="management" %}active{% endif %}' href='/management'>Agent Management</a>{% endif %}
+{% if current_role=='loan_officer' %}<a class='{% if request.endpoint=="sales" %}active{% endif %}' href='/sales'>Sales Dashboard</a>{% endif %}
+<a class='{% if request.endpoint=="borrower" %}active{% endif %}' href='/borrower' target='_blank'>Borrower Search</a>
+<a class='{% if request.endpoint=="logs" %}active{% endif %}' href='/logs'>Communication Logs</a>
+<a class='{% if request.endpoint=="api_flow" %}active{% endif %}' href='/api-flow'>API Flow</a>
+<a href='/logout'>Logout</a></nav></aside><main class='main'><div class='topbar'><div class='role-pill'>{{ current_user }}{% if current_role %} · {{ current_role|replace('_',' ')|title }}{% endif %}</div></div><section class='content'>{% with messages=get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class='flash {{cat}}'>{{msg}}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</section></main></div>{% endblock %}
