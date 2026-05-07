@@ -1,1 +1,57 @@
-{% extends 'base.html' %}{% block body %}<div class='login-wrap' style='display:block;max-width:1040px;margin:auto'><div style='padding:30px 0'><div class='brand'><div class='logo'>RATE<br>HOMES</div><div><div class='brand-title' style='color:#111'>Agent Onboarding Portal</div><div class='brand-sub' style='color:#666'>Public referral network intake</div></div></div><div class='card card-pad'><div class='page-head'><div><div class='eyebrow'>New profile submission</div><h1 class='h1'>Submit Agent Profile</h1><p class='sub'>Information submitted here moves to the Screener Dashboard for AI-assisted review.</p></div><a class='btn btn-light' href='/login'>Internal Login</a></div>{% with messages=get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class='flash {{cat}}'>{{msg}}</div>{% endfor %}{% endwith %}<form method='post' class='form-grid'><input class='input' name='full_name' placeholder='Full name' required><input class='input' name='email' placeholder='Email' required><input class='input' name='phone' placeholder='Phone'><input class='input' name='nmls_id' placeholder='NMLS ID'><input class='input' name='city' placeholder='City'><input class='input' name='state' placeholder='State'><input class='input' name='zip_code' placeholder='ZIP code'><input class='input' name='market' placeholder='Primary market'><input class='input' type='number' name='experience_years' placeholder='Years of experience'><input class='input' type='number' name='monthly_volume' placeholder='Monthly volume'><input class='input' type='number' name='avg_close_days' placeholder='Avg. close days'><input class='input' name='languages' placeholder='Languages'><input class='input wide' name='specialties' placeholder='Specialties'><input class='input wide' name='availability' placeholder='Availability'><textarea class='input wide' name='bio' placeholder='Professional borrower-facing profile bio'></textarea><button class='btn btn-red wide' type='submit'>Submit for Screening</button></form></div></div></div>{% endblock %}
+{% extends 'base.html' %}
+{% block body %}
+<div class="public-shell">
+  <header class="public-header">
+    <div class="brand public-brand"><div class="logo">RATE<br>HOMES</div><div><div class="brand-title">Agent Onboarding Portal</div><div class="brand-sub">Powered by Prajna</div></div></div>
+    <a class="btn btn-light" href="/login">Internal Login</a>
+  </header>
+
+  <main class="onboarding-wrap">
+    <section class="onboarding-hero card">
+      <div>
+        <div class="eyebrow">Referral brokerage intake</div>
+        <h1 class="h1">Submit Agent Profile for Screening</h1>
+        <p class="sub">This profile feeds the Rate Homes screening dashboard, interview evaluation, AI readiness score, and final admin approval workflow.</p>
+      </div>
+      <div class="hero-badges"><span>MLS/Profile</span><span>Interview Review</span><span>AI Scoring</span><span>Admin Approval</span></div>
+    </section>
+
+    {% with messages=get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="flash {{cat}}">{{msg}}</div>{% endfor %}{% endwith %}
+
+    <form method="post" class="card card-pad onboarding-form">
+      <div class="form-section-title"><h3>1. Contact & License Details</h3><p>Basic agent identity and licensing information.</p></div>
+      <div class="form-grid upgraded-form">
+        <label>Full Name<input class="input" name="full_name" placeholder="Marcus Chen" required></label>
+        <label>Email<input class="input" name="email" placeholder="agent@email.com" required></label>
+        <label>Phone<input class="input" name="phone" placeholder="(847) 555-0276"></label>
+        <label>NMLS / MLS ID<input class="input" name="nmls_id" placeholder="NMLS-902345"></label>
+      </div>
+
+      <div class="form-section-title"><h3>2. Market Coverage</h3><p>Used to match borrowers and understand geographic availability.</p></div>
+      <div class="form-grid upgraded-form">
+        <label>City<input class="input" name="city" placeholder="Naperville"></label>
+        <label>State<input class="input" name="state" placeholder="IL"></label>
+        <label>ZIP Code<input class="input" name="zip_code" placeholder="60540"></label>
+        <label>Primary Market<input class="input" name="market" placeholder="Chicago West"></label>
+      </div>
+
+      <div class="form-section-title"><h3>3. Production Snapshot</h3><p>These values power the profile readiness score before interview validation.</p></div>
+      <div class="form-grid upgraded-form">
+        <label>Years of Experience<input class="input" type="number" name="experience_years" placeholder="7"></label>
+        <label>Monthly Transaction Volume<input class="input" type="number" name="monthly_volume" placeholder="13"></label>
+        <label>Average Close Days<input class="input" type="number" name="avg_close_days" placeholder="32"></label>
+        <label>Languages<input class="input" name="languages" placeholder="English, Spanish"></label>
+      </div>
+
+      <div class="form-section-title"><h3>4. Profile Fit</h3><p>Screening and interview teams use this to validate referral readiness.</p></div>
+      <div class="form-grid upgraded-form">
+        <label class="wide">Specialties<input class="input" name="specialties" placeholder="First-time buyers, FHA, jumbo, relocation"></label>
+        <label class="wide">Availability<input class="input" name="availability" placeholder="Weekdays + Saturday / fast response"></label>
+        <label class="wide">Borrower-Facing Bio<textarea class="input" name="bio" placeholder="Describe the agent profile, borrower handling approach, strengths, and relevant market experience."></textarea></label>
+      </div>
+
+      <div class="submit-row"><button class="btn btn-red" type="submit">Submit for Screening</button><span>After submission, the profile appears in the Agent Screening Intelligence dashboard.</span></div>
+    </form>
+  </main>
+</div>
+{% endblock %}

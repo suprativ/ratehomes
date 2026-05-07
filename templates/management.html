@@ -1,1 +1,69 @@
-{% extends 'layout.html' %}{% block content %}<div class='page-head'><div><div class='eyebrow'>Operations admin</div><h1 class='h1'>Agent Management Dashboard</h1><p class='sub'>Maintain approved, pending, rejected and inactive referral agents for downstream sales assignment.</p></div></div><div class='tabs'><a class='tab {% if active=="all" %}active{% endif %}' href='/management'>All</a><a class='tab' href='/management?status=Screening Approved'>Pending Admin {{counts['Screening Approved']}}</a><a class='tab' href='/management?status=Needs Review'>Needs Review {{counts['Needs Review']}}</a><a class='tab' href='/management?status=Admin Approved'>Approved {{counts['Admin Approved']}}</a><a class='tab' href='/management?status=Admin Rejected'>Rejected {{counts['Admin Rejected']}}</a><a class='tab' href='/management?status=Inactive'>Inactive {{counts['Inactive']}}</a></div><div class='card card-pad'><table class='table'><thead><tr><th>Agent</th><th>Market</th><th>NMLS</th><th>Score</th><th>Status</th><th>Operational Actions</th></tr></thead><tbody>{% for a in agents %}<tr><td><b>{{a.full_name}}</b><br><span class='sub'>{{a.email}} · {{a.phone}}</span></td><td>{{a.market}}<br><span class='sub'>{{a.city}}, {{a.state}}</span></td><td>{{a.nmls_id}}</td><td><b>{{a.score}}</b></td><td><span class='pill {% if a.status=="Admin Approved" %}good{% elif "Rejected" in a.status %}bad{% elif a.status in ["Inactive","Suspended"] %}review{% else %}pending{% endif %}'>{{a.status}}</span></td><td><form method='post' action='/management/{{a.id}}/action'><div class='action-row'><button class='btn btn-green' name='action' value='approve'>Final Approve</button><button class='btn btn-red' name='action' value='reject'>Reject</button><button class='btn btn-light' name='action' value='inactive'>Deactivate</button><button class='btn btn-amber' name='action' value='suspend'>Suspend</button></div><input class='input' style='margin-top:8px' name='notes' placeholder='Admin note'></form></td></tr>{% endfor %}</tbody></table></div>{% endblock %}
+{% extends 'layout.html' %}
+{% block content %}
+<div class="page-head enterprise-head">
+  <div>
+    <div class="eyebrow">Operations admin</div>
+    <h1 class="h1">Agent Management Dashboard</h1>
+    <p class="sub">Finalize referral partner approval, monitor agent quality, and manage operational status for downstream lead assignment.</p>
+  </div>
+</div>
+
+<div class="metric-strip admin-strip">
+  <div class="metric-tile blue"><div class="metric-icon">👥</div><div><b>{{metrics.total}}</b><span>Total Agents</span><small>All referral candidates</small></div></div>
+  <div class="metric-tile green"><div class="metric-icon">✓</div><div><b>{{metrics.approved}}</b><span>Admin Approved</span><small>Available for assignment</small></div></div>
+  <div class="metric-tile amber"><div class="metric-icon">◷</div><div><b>{{metrics.pending_admin}}</b><span>Pending Admin</span><small>From screening team</small></div></div>
+  <div class="metric-tile purple"><div class="metric-icon">★</div><div><b>{{metrics.avg_score}}</b><span>Avg. Score</span><small>Network readiness</small></div></div>
+  <div class="metric-tile red"><div class="metric-icon">⏸</div><div><b>{{metrics.inactive}}</b><span>Inactive/Suspended</span><small>Not eligible for assignment</small></div></div>
+</div>
+
+<div class="dashboard-grid-admin">
+  <div class="card card-pad pipeline-wide">
+    <div class="section-row"><h3>Agent Approval Funnel</h3><span class="section-note">Operational view of referral partner lifecycle.</span></div>
+    <div class="admin-funnel">
+      <div><span>Screening Approved</span><b>{{counts['Screening Approved']}}</b><small>Awaiting final decision</small></div>
+      <div><span>Needs Review</span><b>{{counts['Needs Review']}}</b><small>Requires clarification</small></div>
+      <div><span>Admin Approved</span><b>{{counts['Admin Approved']}}</b><small>Assignment-ready</small></div>
+      <div><span>Admin Rejected</span><b>{{counts['Admin Rejected']}}</b><small>Removed from funnel</small></div>
+      <div><span>Inactive</span><b>{{counts['Inactive']}}</b><small>Temporarily unavailable</small></div>
+    </div>
+  </div>
+  <div class="card card-pad score-overview">
+    <div class="section-row"><h3>Network Readiness</h3></div>
+    <div class="gauge-ring" style="--score:{{metrics.avg_score}}"><div><b>{{metrics.avg_score}}</b><span>Avg Score</span></div></div>
+    <p class="sub center">{{metrics.ready_rate}}% of agents are scoring 80+ across profile and interview readiness.</p>
+  </div>
+</div>
+
+<div class="tabs smart-tabs">
+  <a class="tab {% if active=='all' %}active{% endif %}" href="/management">All</a>
+  <a class="tab {% if active=='Screening Approved' %}active{% endif %}" href="/management?status=Screening Approved">Pending Admin {{counts['Screening Approved']}}</a>
+  <a class="tab {% if active=='Needs Review' %}active{% endif %}" href="/management?status=Needs Review">Needs Review {{counts['Needs Review']}}</a>
+  <a class="tab {% if active=='Admin Approved' %}active{% endif %}" href="/management?status=Admin Approved">Approved {{counts['Admin Approved']}}</a>
+  <a class="tab {% if active=='Admin Rejected' %}active{% endif %}" href="/management?status=Admin Rejected">Rejected {{counts['Admin Rejected']}}</a>
+  <a class="tab {% if active=='Inactive' %}active{% endif %}" href="/management?status=Inactive">Inactive {{counts['Inactive']}}</a>
+</div>
+
+<div class="card card-pad table-card">
+  <div class="section-row"><h3>Agent Operations Table</h3><span class="section-note">Use actions to make agents available/unavailable for sales assignment.</span></div>
+  <table class="table enterprise-table">
+    <thead><tr><th>Agent</th><th>Market</th><th>NMLS</th><th>Readiness</th><th>Status</th><th>Operational Actions</th></tr></thead>
+    <tbody>
+      {% for a in agents %}
+      <tr>
+        <td><b>{{a.full_name}}</b><br><span class="sub">{{a.email}} · {{a.phone}}</span></td>
+        <td>{{a.market or 'Not provided'}}<br><span class="sub">{{a.city}}, {{a.state}}</span></td>
+        <td>{{a.nmls_id or 'Not provided'}}</td>
+        <td><div class="score-inline"><b>{{a.score or 0}}</b><div class="mini-bar"><i style="width:{{a.score or 0}}%"></i></div></div></td>
+        <td><span class="pill {% if a.status=='Admin Approved' %}good{% elif 'Rejected' in a.status %}bad{% elif a.status in ['Inactive','Suspended'] %}review{% else %}pending{% endif %}">{{a.status}}</span></td>
+        <td>
+          <form method="post" action="/management/{{a.id}}/action" class="admin-actions">
+            <div class="action-row"><button class="btn btn-green" name="action" value="approve">Final Approve</button><button class="btn btn-red" name="action" value="reject">Reject</button><button class="btn btn-light" name="action" value="inactive">Deactivate</button><button class="btn btn-amber" name="action" value="suspend">Suspend</button></div>
+            <input class="input" name="notes" placeholder="Admin note">
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
