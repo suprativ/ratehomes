@@ -1,3 +1,169 @@
-{% extends 'layout.html' %}{% block content %}<div class='page-head'><div><div class='eyebrow'>Screener workspace</div><h1 class='h1'>Agent Screening Dashboard</h1><p class='sub'>Review pending agent profiles, AI recommendation, risk notes and screening score before approval.</p></div><a class='btn btn-dark' href='/onboarding' target='_blank'>New Agent Form</a></div>
-<div class='layout2'><div class='card queue'><h3>Screening Queue</h3>{% for a in agents %}<a class='queue-item {% if agent and a.id==agent.id %}active{% endif %}' href='/screening?id={{a.id}}'><div class='queue-name'>{{a.full_name}}</div><div class='queue-meta'>{{a.city}}, {{a.state}} · {{a.nmls_id}}</div><div style='margin-top:8px'><span class='pill {% if a.status=="Submitted" %}pending{% elif "Approved" in a.status %}good{% elif "Rejected" in a.status %}bad{% else %}review{% endif %}'>{{a.status}}</span></div></a>{% endfor %}</div>
-{% if agent %}<div class='card card-pad'><div class='page-head' style='margin-bottom:0'><div><h2 style='margin:0'>{{agent.full_name}}</h2><p class='sub'>{{agent.city}}, {{agent.state}} · {{agent.email}} · {{agent.phone}}</p></div><div class='scorebox'><div><small>Screening Score</small><b>{{agent.score or 0}}</b></div></div></div><div class='detail-grid'><div class='fieldbox'><div class='label'>NMLS ID</div><div class='value'>{{agent.nmls_id}}</div></div><div class='fieldbox'><div class='label'>Experience</div><div class='value'>{{agent.experience_years}} years</div></div><div class='fieldbox'><div class='label'>Monthly Volume</div><div class='value'>{{agent.monthly_volume}} transactions</div></div><div class='fieldbox'><div class='label'>Avg. Close Time</div><div class='value'>{{agent.avg_close_days}} days</div></div><div class='fieldbox'><div class='label'>States</div><div class='value'>{{agent.state}}</div></div><div class='fieldbox'><div class='label'>Languages</div><div class='value'>{{agent.languages}}</div></div></div><div class='ai-panel'><div><h3>AI Screening Recommendation</h3><p><b>{{agent.ai_summary or 'Run AI Screening to generate the agent readiness summary.'}}</b></p><p><b>Strengths</b><br>{{agent.ai_strengths or 'Pending AI analysis.'}}</p><span class='pill dark'>{{agent.ai_recommendation or 'AI Pending'}}</span></div><div><h3>Risk Notes</h3><p>{{agent.ai_risks or 'Risk notes will appear after OpenAI screening.'}}</p></div></div><h3>Borrower Profile Bio</h3><div class='bio'>{{agent.bio}}</div><form method='post' action='/screening/{{agent.id}}/ai' style='margin-top:16px'><button class='btn btn-blue'>Run AI Screening</button></form><form method='post' action='/screening/{{agent.id}}/action' style='margin-top:14px'><div class='action-row'><button name='action' value='approve' class='btn btn-green'>Approve to Admin Review</button><button name='action' value='review' class='btn btn-amber'>Send to Review</button><input class='input' style='max-width:320px' name='notes' placeholder='Rejection or review reason'><button name='action' value='reject' class='btn btn-red'>Reject</button></div></form></div>{% endif %}</div>{% endblock %}
+{% extends 'layout.html' %}
+{% block content %}
+<div class="page-head enterprise-head">
+  <div>
+    <div class="eyebrow">Screener workspace</div>
+    <h1 class="h1">Agent Screening Intelligence</h1>
+    <p class="sub">Screen MLS/profile data, complete interview evaluation, and move qualified referral partners to admin approval.</p>
+  </div>
+  <a class="btn btn-dark" href="/onboarding" target="_blank">+ New Agent Form</a>
+</div>
+
+<div class="metric-strip">
+  <div class="metric-tile blue"><div class="metric-icon">👥</div><div><b>{{metrics.total}}</b><span>Total Agents</span><small>All intake profiles</small></div></div>
+  <div class="metric-tile green"><div class="metric-icon">✓</div><div><b>{{metrics.approved}}</b><span>Approved</span><small>{{metrics.conversion}}% approval rate</small></div></div>
+  <div class="metric-tile amber"><div class="metric-icon">◷</div><div><b>{{metrics.pending_interview}}</b><span>Pending Review</span><small>Needs screening / interview</small></div></div>
+  <div class="metric-tile purple"><div class="metric-icon">★</div><div><b>{{metrics.avg_score}}</b><span>Avg. Readiness</span><small>Profile + interview score</small></div></div>
+  <div class="metric-tile red"><div class="metric-icon">!</div><div><b>{{metrics.rejected}}</b><span>Rejected</span><small>Risk or non-fit profiles</small></div></div>
+</div>
+
+<div class="screen-grid">
+  <aside class="queue-panel card">
+    <div class="queue-title">
+      <div>
+        <h3>Screening Queue</h3>
+        <p>Select an agent to review profile, interview, and AI decisioning.</p>
+      </div>
+    </div>
+    <div class="queue-list">
+      {% for a in agents %}
+      <a class="candidate-card {% if agent and a.id==agent.id %}active{% endif %}" href="/screening?id={{a.id}}">
+        <div class="candidate-avatar">{{a.full_name[:1]}}</div>
+        <div class="candidate-info">
+          <strong>{{a.full_name}}</strong>
+          <span>{{a.market or 'Market not provided'}}</span>
+          <small>{{a.email}}</small>
+        </div>
+        <div class="mini-score">{{a.score or 0}}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </aside>
+
+  {% if agent %}
+  <section class="agent-workspace">
+    <div class="agent-hero card">
+      <div class="agent-main">
+        <div class="big-avatar">{{agent.full_name[:1]}}</div>
+        <div>
+          <div class="agent-topline">
+            <h2>{{agent.full_name}}</h2>
+            <span class="pill {% if agent.status=='Submitted' %}pending{% elif 'Approved' in agent.status %}good{% elif 'Rejected' in agent.status %}bad{% else %}review{% endif %}">{{agent.status}}</span>
+          </div>
+          <p class="sub">{{agent.market or 'Market not provided'}} · {{agent.email}} · {{agent.phone}}</p>
+          <div class="hero-meta">
+            <span>MLS/NMLS: <b>{{agent.nmls_id or 'Not provided'}}</b></span>
+            <span>Monthly Volume: <b>{{agent.monthly_volume or 0}}</b></span>
+            <span>Close Time: <b>{{agent.avg_close_days or 0}} days</b></span>
+            <span>Regions: <b>{{agent.city}}, {{agent.state}}</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="readiness-gauge">
+        <div class="gauge-ring" style="--score:{{agent.score or 0}}"><div><b>{{agent.score or 0}}</b><span>AI Readiness</span></div></div>
+      </div>
+    </div>
+
+    <div class="funnel-card card card-pad">
+      <div class="section-row"><h3>Screening Funnel</h3><span class="section-note">Click stages are represented from the current agent lifecycle.</span></div>
+      <div class="funnel-line">
+        <div class="funnel-stage done"><span>1</span><b>Submitted</b><small>Profile captured</small></div>
+        <div class="funnel-stage {% if interview.completed>0 %}done{% endif %}"><span>2</span><b>Interview</b><small>{{interview.completed}}/{{interview.total_questions}} completed</small></div>
+        <div class="funnel-stage {% if agent.ai_recommendation %}done{% endif %}"><span>3</span><b>AI Review</b><small>{{agent.ai_recommendation or 'Pending'}}</small></div>
+        <div class="funnel-stage {% if agent.status=='Screening Approved' %}done{% endif %}"><span>4</span><b>Admin Queue</b><small>Final approval</small></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="ai-decision card">
+        <div class="ai-left">
+          <div class="gauge-ring small" style="--score:{{agent.score or 0}}"><div><b>{{agent.score or 0}}</b><span>Score</span></div></div>
+        </div>
+        <div class="ai-copy">
+          <h2>AI Screening Recommendation</h2>
+          <p>{{agent.ai_summary or ('Run AI Screening after saving interview notes to generate a grounded executive summary for ' ~ agent.full_name ~ '.') }}</p>
+          <span class="pill dark">{{agent.ai_recommendation or 'AI Pending'}}</span>
+          <div class="ai-boxes">
+            <div><b>Strengths</b><p>{{agent.ai_strengths or 'Pending AI analysis. The score will use profile details and the interview evaluation below.'}}</p></div>
+            <div><b>Risk Notes</b><p>{{agent.ai_risks or 'Risk notes will appear after AI screening is run.'}}</p></div>
+          </div>
+          <form method="post" action="/screening/{{agent.id}}/ai"><button class="btn btn-blue">Run AI Screening</button></form>
+        </div>
+      </div>
+
+      <div class="criteria-card card card-pad">
+        <div class="section-row"><h3>Readiness Criteria</h3><span class="score-chip">{{interview.completed}}/{{interview.total_questions}} Complete</span></div>
+        <div class="criteria-row"><span>Production Volume</span><div class="bar"><i style="width:{{ [((agent.monthly_volume or 0) * 6), 100]|min }}%"></i></div><b>{{agent.monthly_volume or 0}} / mo</b></div>
+        <div class="criteria-row"><span>Close Speed</span><div class="bar"><i style="width:{{ 0 if (agent.avg_close_days or 60) > 100 else 100-(agent.avg_close_days or 60) }}%"></i></div><b>{{agent.avg_close_days or 0}} days</b></div>
+        <div class="criteria-row"><span>Interview Completion</span><div class="bar"><i style="width:{{interview.completion_pct}}%"></i></div><b>{{interview.completion_pct}}%</b></div>
+        <div class="criteria-row"><span>Referral Fit</span><div class="bar"><i style="width:{{agent.score or 0}}%"></i></div><b>{{agent.score or 0}}%</b></div>
+      </div>
+    </div>
+
+    <div class="profile-card card card-pad">
+      <div class="section-row"><h3>MLS Data & Profile</h3><span class="section-note">Structured profile fields used for AI screening.</span></div>
+      <div class="detail-grid upgraded">
+        <div class="fieldbox"><div class="label">NMLS ID</div><div class="value">{{agent.nmls_id or 'Not provided'}}</div></div>
+        <div class="fieldbox"><div class="label">Experience</div><div class="value">{{agent.experience_years or 0}} years</div></div>
+        <div class="fieldbox"><div class="label">Monthly Volume</div><div class="value">{{agent.monthly_volume or 0}} transactions</div></div>
+        <div class="fieldbox"><div class="label">Avg. Close Time</div><div class="value">{{agent.avg_close_days or 0}} days</div></div>
+        <div class="fieldbox"><div class="label">Primary Market</div><div class="value">{{agent.market or 'Not provided'}}</div></div>
+        <div class="fieldbox"><div class="label">Languages</div><div class="value">{{agent.languages or 'Not provided'}}</div></div>
+        <div class="fieldbox wide"><div class="label">Specialties</div><div class="value">{{agent.specialties or 'Not provided'}}</div></div>
+        <div class="fieldbox wide"><div class="label">Borrower-Facing Bio</div><div class="value muted-value">{{agent.bio or 'Not provided'}}</div></div>
+      </div>
+    </div>
+
+    <form method="post" action="/screening/{{agent.id}}/interview" class="card card-pad interview-card">
+      <div class="section-row interview-head">
+        <div>
+          <h3>Interview & Evaluation Capture</h3>
+          <p class="sub">Use this section during the agent interview. Scores update the readiness score and AI recommendation.</p>
+        </div>
+        <div class="interview-score-grid">
+          <div><span>Average</span><b>{{interview.avg}}/10</b></div>
+          <div><span>Total Points</span><b>{{interview.total_points}}/100</b></div>
+          <div><span>Questions</span><b>{{interview.completed}}/{{interview.total_questions}}</b></div>
+        </div>
+      </div>
+      <div class="interview-meta-row">
+        <input class="input" name="interviewer" placeholder="Interviewer name" value="{{interview.notes.interviewer if interview.notes else current_user or ''}}">
+        <input class="input" name="interview_date" placeholder="Interview date / time" value="{{interview.notes.interview_date if interview.notes else ''}}">
+      </div>
+      <div class="question-list">
+        {% for q in questions %}
+        {% set existing = interview.answers.get(q.id) %}
+        <div class="question-item">
+          <div class="question-number">{{q.id}}</div>
+          <div class="question-body">
+            <div class="question-title-row">
+              <div><h4>{{q.title}}</h4><p>{{q.question}}</p></div>
+              <select class="select score-select" name="score_{{q.id}}" required>
+                <option value="0" {% if not existing or existing.score==0 %}selected{% endif %}>Score</option>
+                {% for n in range(1,11) %}<option value="{{n}}" {% if existing and existing.score==n %}selected{% endif %}>{{n}}</option>{% endfor %}
+              </select>
+            </div>
+            <textarea class="input" name="answer_{{q.id}}" placeholder="Enter agent's response, validation notes, risk comments, or follow-up items...">{{existing.answer if existing else ''}}</textarea>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <textarea class="input wide-notes" name="overall_notes" placeholder="Overall interview notes and recommendation...">{{interview.notes.overall_notes if interview.notes else ''}}</textarea>
+      <div class="action-footer">
+        <button class="btn btn-dark" type="submit">Save Interview Evaluation</button>
+      </div>
+    </form>
+
+    <form method="post" action="/screening/{{agent.id}}/action" class="card card-pad final-action-card">
+      <div class="section-row"><h3>Final Screener Decision</h3><span class="section-note">Move agent to admin, review, or rejection based on profile + interview + AI.</span></div>
+      <div class="action-row decision-row">
+        <button name="action" value="approve" class="btn btn-green">Approve to Admin Review</button>
+        <button name="action" value="review" class="btn btn-amber">Keep in Review</button>
+        <input class="input" name="notes" placeholder="Decision notes / rejection reason">
+        <button name="action" value="reject" class="btn btn-red">Reject</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
